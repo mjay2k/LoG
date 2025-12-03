@@ -1,0 +1,5 @@
+{
+  "name": "Legends of Gemini: Isometric RPG",
+  "description": "A retro-styled, isometric, turn-based RPG inspired by Legends of Kesmai. Features a 5x5 viewport, building transparency systems, and AI-driven narrative.",
+  "requestFramePermissions": []
+}
