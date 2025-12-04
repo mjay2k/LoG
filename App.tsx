@@ -135,6 +135,15 @@ const App: React.FC = () => {
   const [showGroundLoot, setShowGroundLoot] = useState(false);
   const [activeTownService, setActiveTownService] = useState<'bank' | 'merchant' | 'locker' | null>(null);
 
+  // Tooltip State
+  const [hoveredItem, setHoveredItem] = useState<Item | null>(null);
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+
+  // Update mouse position for tooltip
+  const handleMouseMove = (e: React.MouseEvent) => {
+      setMousePos({ x: e.clientX, y: e.clientY });
+  };
+
   // PERIODIC WORLD SAVE & GHOST UPDATE & HEARTBEAT
   useEffect(() => {
      if (appState === 'GAME' && currentUser) {
@@ -1037,7 +1046,7 @@ const App: React.FC = () => {
   const { tiles: renderedTiles, visibleEntities } = renderTiles();
 
   return (
-    <div className="flex h-screen w-screen bg-gray-900 overflow-hidden text-gray-100 font-sans" onContextMenu={(e) => e.preventDefault()}>
+    <div className="flex h-screen w-screen bg-gray-900 overflow-hidden text-gray-100 font-sans" onContextMenu={(e) => e.preventDefault()} onMouseMove={handleMouseMove}>
       <div className="absolute top-2 right-2 w-4 h-4 bg-gray-800/20 hover:bg-red-500 cursor-pointer z-[60] rounded-full border border-gray-700" onClick={() => setShowDevPanel(true)} title="Developer Mode"></div>
       <DeveloperPanel 
           isOpen={showDevPanel} 
@@ -1057,6 +1066,26 @@ const App: React.FC = () => {
 
       {/* CHAT INPUT */}
       <ChatInput onSend={handleGlobalChat} />
+
+      {/* ITEM TOOLTIP */}
+      {hoveredItem && (
+          <div className="fixed z-[70] pointer-events-none bg-black/95 border border-yellow-500 p-2 rounded shadow-2xl text-xs max-w-xs" style={{ top: mousePos.y + 10, left: mousePos.x + 10 }}>
+             <div className="font-bold text-yellow-500 mb-1 text-sm border-b border-gray-700 pb-1">{hoveredItem.name}</div>
+             <div className="text-gray-400 italic mb-1">{hoveredItem.type.replace('_', ' ')} {hoveredItem.weaponType ? `(${hoveredItem.weaponType})` : ''}</div>
+             {hoveredItem.damage && <div className="text-red-300">Damage: +{hoveredItem.damage}</div>}
+             {hoveredItem.armor && <div className="text-blue-300">Armor: +{hoveredItem.armor}</div>}
+             {hoveredItem.healAmount && <div className="text-green-300">Heals: {hoveredItem.healAmount} over 10s</div>}
+             {hoveredItem.stats && (
+                 <div className="space-y-0.5">
+                     {Object.entries(hoveredItem.stats).map(([k,v]) => (
+                         // @ts-ignore
+                         v > 0 && <div key={k} className="text-purple-300 uppercase">{k}: +{v}</div>
+                     ))}
+                 </div>
+             )}
+             <div className="text-yellow-600 mt-2 text-[10px] text-right">Value: {hoveredItem.value}g</div>
+          </div>
+      )}
 
       <div className="flex-1 flex flex-col items-center justify-center relative bg-black/50 border-r border-gray-800">
         <div className="relative bg-black overflow-hidden shadow-2xl border-4 border-gray-700 rounded" style={{ width: `${VIEWPORT_WIDTH_PX}px`, height: `${VIEWPORT_HEIGHT_PX}px` }}>
@@ -1129,22 +1158,37 @@ const App: React.FC = () => {
                         <div className="w-1/3 border-r border-gray-700 pr-4">
                             <h3 className="text-xs text-gray-500 uppercase font-bold mb-4">Attributes</h3>
                             <div className="space-y-3">{(['str', 'dex', 'int', 'con'] as const).map(stat => (<div key={stat} className="flex justify-between items-center bg-gray-900 p-2 rounded border border-gray-700"><span className="uppercase text-gray-400 font-bold text-sm">{stat}</span><div className="flex items-center gap-2"><span className="text-white font-mono text-lg">{player.stats[stat]}</span>{player.statPoints > 0 && <button onClick={() => handleStatIncrease(stat)} className="w-5 h-5 bg-green-700 hover:bg-green-600 text-white flex items-center justify-center rounded text-xs">+</button>}</div></div>))}</div>
+                            <div className="mt-4 space-y-1 text-[10px] text-gray-500">
+                                <div><strong className="text-gray-400">STR:</strong> Increases Melee Damage</div>
+                                <div><strong className="text-gray-400">DEX:</strong> Increases Armor/Defense</div>
+                                <div><strong className="text-gray-400">INT:</strong> Increases Crit Chance</div>
+                                <div><strong className="text-gray-400">CON:</strong> Increases Max HP</div>
+                            </div>
                             <div className="mt-4 text-center"><div className="text-[10px] text-gray-500 uppercase">Available Points</div><div className={`text-2xl font-bold ${player.statPoints > 0 ? 'text-green-400 animate-pulse' : 'text-gray-600'}`}>{player.statPoints}</div></div>
                         </div>
                         <div className="flex-1 flex flex-col">
                             <h3 className="text-xs text-gray-500 uppercase font-bold mb-2">Equipment</h3>
                             <div className="grid grid-cols-4 gap-2 mb-4">
                                 {[EquipmentSlot.HEAD, EquipmentSlot.CHEST, EquipmentSlot.GLOVES, EquipmentSlot.BOOTS, EquipmentSlot.MAIN_HAND, EquipmentSlot.OFF_HAND].map(slot => (
-                                    <div key={slot} className="relative group bg-gray-900 border border-gray-700 h-12 rounded flex flex-col items-center justify-center cursor-pointer hover:border-gray-500" onClick={() => handleUnequip(slot as EquipmentSlot)}>
+                                    <div key={slot} className="relative group bg-gray-900 border border-gray-700 h-12 rounded flex flex-col items-center justify-center cursor-pointer hover:border-gray-500" onClick={() => handleUnequip(slot as EquipmentSlot)} onMouseEnter={() => setHoveredItem((player.equipment as any)[slot])} onMouseLeave={() => setHoveredItem(null)}>
                                         {/* @ts-ignore */}
                                         {player.equipment[slot] ? <span className="text-xl">{player.equipment[slot].icon}</span> : <span className="text-[9px] text-gray-600 uppercase">{slot.replace('Hand', '')}</span>}
                                     </div>
                                 ))}
                             </div>
+                            <h3 className="text-xs text-gray-500 uppercase font-bold mb-2">Rings</h3>
+                            <div className="grid grid-cols-5 gap-2 mb-4">
+                                {player.equipment?.rings.map((ring, idx) => (
+                                    <div key={`ring-${idx}`} className="relative group bg-gray-900 border border-gray-700 h-10 w-10 rounded flex items-center justify-center cursor-pointer hover:border-gray-500" onClick={() => handleUnequip(EquipmentSlot.RING, idx)} onMouseEnter={() => setHoveredItem(ring)} onMouseLeave={() => setHoveredItem(null)}>
+                                        {ring ? <span className="text-lg">{ring.icon}</span> : <span className="text-[8px] text-gray-600">RING</span>}
+                                    </div>
+                                ))}
+                            </div>
+
                             <h3 className="text-xs text-gray-500 uppercase font-bold mb-2">Inventory</h3>
                             <div className="grid grid-cols-5 gap-2 h-40 overflow-y-auto content-start bg-black/20 p-2 rounded border border-gray-700">
                                 {player.inventory?.map((item, idx) => (
-                                    <div key={idx} className="bg-gray-900 border border-gray-600 h-10 w-10 flex items-center justify-center rounded cursor-pointer hover:bg-gray-700 hover:border-white relative group" onClick={() => handleEquip(item, idx)} title={item.name}><div className="text-lg">{item.icon}</div></div>
+                                    <div key={idx} className="bg-gray-900 border border-gray-600 h-10 w-10 flex items-center justify-center rounded cursor-pointer hover:bg-gray-700 hover:border-white relative group" onClick={() => handleEquip(item, idx)} onMouseEnter={() => setHoveredItem(item)} onMouseLeave={() => setHoveredItem(null)}><div className="text-lg">{item.icon}</div></div>
                                 ))}
                             </div>
                         </div>
@@ -1188,7 +1232,7 @@ const App: React.FC = () => {
                <div className="bg-purple-900 border-2 border-purple-500 w-[500px] rounded shadow-2xl p-6">
                    <h2 className="text-2xl font-bold text-purple-200 mb-2 text-center">Merchant</h2>
                    <div className="flex justify-center gap-4 mb-4"><button onClick={() => setMerchantTab('buy')} className={`px-4 py-1 rounded font-bold ${merchantTab === 'buy' ? 'bg-purple-600' : 'bg-purple-900/50'}`}>Buy</button><button onClick={() => setMerchantTab('sell')} className={`px-4 py-1 rounded font-bold ${merchantTab === 'sell' ? 'bg-purple-600' : 'bg-purple-900/50'}`}>Sell</button></div>
-                   <div className="h-64 overflow-y-auto bg-black/20 p-2 rounded mb-4">{merchantTab === 'buy' ? MERCHANT_ITEMS.map((item, idx) => (<div key={idx} className="flex justify-between items-center bg-gray-800 p-2 rounded mb-1 border border-gray-700"><span>{item.name} ({item.value}g)</span><button onClick={() => handleBuy(item)} className="bg-green-700 px-2 py-1 rounded text-xs">Buy</button></div>)) : (player.inventory||[]).map((item, idx) => (<div key={idx} className="flex justify-between items-center bg-gray-800 p-2 rounded mb-1 border border-gray-700"><span>{item.name}</span><button onClick={() => handleSell(idx)} className="bg-yellow-700 px-2 py-1 rounded text-xs">Sell {item.value}g</button></div>))}</div>
+                   <div className="h-64 overflow-y-auto bg-black/20 p-2 rounded mb-4">{merchantTab === 'buy' ? MERCHANT_ITEMS.map((item, idx) => (<div key={idx} className="flex justify-between items-center bg-gray-800 p-2 rounded mb-1 border border-gray-700" onMouseEnter={() => setHoveredItem(item)} onMouseLeave={() => setHoveredItem(null)}><span>{item.name} ({item.value}g)</span><button onClick={() => handleBuy(item)} className="bg-green-700 px-2 py-1 rounded text-xs">Buy</button></div>)) : (player.inventory||[]).map((item, idx) => (<div key={idx} className="flex justify-between items-center bg-gray-800 p-2 rounded mb-1 border border-gray-700" onMouseEnter={() => setHoveredItem(item)} onMouseLeave={() => setHoveredItem(null)}><span>{item.name}</span><button onClick={() => handleSell(idx)} className="bg-yellow-700 px-2 py-1 rounded text-xs">Sell {item.value}g</button></div>))}</div>
                    <button onClick={() => setActiveTownService(null)} className="w-full bg-gray-800 py-2 rounded">Leave</button>
                </div>
              )}
@@ -1196,8 +1240,8 @@ const App: React.FC = () => {
                  <div className="bg-slate-800 border-2 border-slate-500 w-[500px] rounded shadow-2xl p-6">
                      <h2 className="text-2xl font-bold text-white mb-2 text-center">Storage</h2>
                      <div className="flex gap-4 h-64">
-                         <div className="flex-1 bg-black/20 p-2 overflow-auto"><h3 className="text-xs text-gray-400">Inventory</h3>{(player.inventory||[]).map((i, idx) => <div key={idx} onClick={() => handleLocker(idx, true)} className="cursor-pointer bg-gray-700 mb-1 p-1 text-xs">{i.name}</div>)}</div>
-                         <div className="flex-1 bg-black/20 p-2 overflow-auto"><h3 className="text-xs text-gray-400">Locker</h3>{(player.locker||[]).map((i, idx) => <div key={idx} onClick={() => handleLocker(idx, false)} className="cursor-pointer bg-gray-700 mb-1 p-1 text-xs">{i.name}</div>)}</div>
+                         <div className="flex-1 bg-black/20 p-2 overflow-auto"><h3 className="text-xs text-gray-400">Inventory</h3>{(player.inventory||[]).map((i, idx) => <div key={idx} onClick={() => handleLocker(idx, true)} className="cursor-pointer bg-gray-700 mb-1 p-1 text-xs" onMouseEnter={() => setHoveredItem(i)} onMouseLeave={() => setHoveredItem(null)}>{i.name}</div>)}</div>
+                         <div className="flex-1 bg-black/20 p-2 overflow-auto"><h3 className="text-xs text-gray-400">Locker</h3>{(player.locker||[]).map((i, idx) => <div key={idx} onClick={() => handleLocker(idx, false)} className="cursor-pointer bg-gray-700 mb-1 p-1 text-xs" onMouseEnter={() => setHoveredItem(i)} onMouseLeave={() => setHoveredItem(null)}>{i.name}</div>)}</div>
                      </div>
                      <button onClick={() => setActiveTownService(null)} className="w-full mt-4 bg-gray-800 py-2 rounded">Close</button>
                  </div>

@@ -12,7 +12,7 @@ const STORE_LOBBY = 'lobby_chat';
 const KEY_WORLD_DATA = 'world_data';
 const KEY_CONFIG_DATA = 'game_config';
 
-let REMOTE_URL = 'https://mjaystudios.com/log_online.js'; // Default to user server
+let REMOTE_URL = 'https://log-whev.onrender.com'; // Default to Render backend
 
 // --- HELPER: PASSWORD HASHING ---
 const hashPassword = async (password: string) => {

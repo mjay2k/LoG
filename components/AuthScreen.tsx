@@ -17,7 +17,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin }) => {
   
   // DEFAULT TO ONLINE MODE AS REQUESTED
   const [useRemote, setUseRemote] = useState(true);
-  const [serverUrl, setServerUrl] = useState('https://mjaystudios.com/log_online.js');
+  const [serverUrl, setServerUrl] = useState('https://log-whev.onrender.com');
 
   // Load existing accounts on mount to show the user that data is detected
   useEffect(() => {
@@ -87,7 +87,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin }) => {
                   value={serverUrl}
                   onChange={(e) => setServerUrl(e.target.value)}
                   className="w-full bg-blue-900/20 border-2 border-blue-600 p-2 text-white focus:border-blue-400 outline-none text-xs"
-                  placeholder="http://your-server-ip:3000"
+                  placeholder="https://your-server-url.onrender.com"
                 />
             </div>
         )}
